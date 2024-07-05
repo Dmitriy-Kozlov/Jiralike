@@ -29,7 +29,12 @@ async def get_tasks(session: AsyncSession = Depends(get_async_session)):
 @router.get("/{task_id}", response_model=schemas.TaskRel)
 async def get_one_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
     try:
-        query = select(models.Task).filter(models.Task.id == task_id)
+        # query = select(models.Task).filter(models.Task.id == task_id)
+        query = (
+            select(models.Task)
+            .filter_by(id=task_id)
+            .options(selectinload(models.Task.comments))
+        )
         result = await session.execute(query)
         task = result.scalars().one()
         return task
@@ -51,3 +56,15 @@ async def add_comment(new_comment: schemas.CommentAdd, session: AsyncSession = D
     await session.execute(stmt)
     await session.commit()
     return {"status": "OK"}
+
+
+@router.get("/{task_id}/comments", response_model=List[schemas.Comment])
+async def get_comments_from_specified_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
+    query = (
+        select(models.Comment)
+        .filter_by(task_id=task_id)
+        )
+    result = await session.execute(query)
+    comments = result.scalars().all()
+    return comments
+
