@@ -24,12 +24,27 @@ class Task(TaskAdd):
     created_at: datetime
 
 
+class TaskFileAdd(BaseModel):
+    name: str
+    minetype: str
+    task_id: int
+
+
+class TaskFile(TaskFileAdd):
+    id: int
+
+
+class TaskFileRel(TaskFile):
+    task: "Task"
+
+
 class CommentRel(Comment):
     task: "Task"
 
 
 class TaskRel(Task):
     comments: list["Comment"]
+    file: TaskFile | None
 
 
 

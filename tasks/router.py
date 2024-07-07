@@ -1,10 +1,11 @@
+import shutil
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select, insert
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from database import get_async_session
 from . import models, schemas
@@ -20,6 +21,7 @@ async def get_tasks(session: AsyncSession = Depends(get_async_session)):
     query = (
         select(models.Task)
         .options(selectinload(models.Task.comments))
+        .options(joinedload(models.Task.file))
     )
     result = await session.execute(query)
     tasks = result.scalars().all()
@@ -34,6 +36,7 @@ async def get_one_task(task_id: int, session: AsyncSession = Depends(get_async_s
             select(models.Task)
             .filter_by(id=task_id)
             .options(selectinload(models.Task.comments))
+            .options(joinedload(models.Task.file))
         )
         result = await session.execute(query)
         task = result.scalars().one()
@@ -68,3 +71,16 @@ async def get_comments_from_specified_task(task_id: int, session: AsyncSession =
     comments = result.scalars().all()
     return comments
 
+
+@router.post("/upload", summary="Upload your Post picture")
+async def upload(task_id: int, session: AsyncSession = Depends(get_async_session), file: UploadFile = File(...)):
+    with open(f"static/taskfiles/{file.filename}", "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    mimetype = file.content_type
+    name = file.filename
+
+    taskfile = models.TaskFile(name=name, minetype=mimetype, task_id=task_id)
+    session.add(taskfile)
+    await session.commit()
+    return f"{name} has been Successfully Uploaded"

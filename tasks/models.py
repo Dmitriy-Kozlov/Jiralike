@@ -17,6 +17,9 @@ class Task(Base):
     comments: Mapped[Optional[list["Comment"]]] = relationship(
         back_populates="task",
     )
+    file: Mapped[Optional["TaskFile"]] = relationship(
+        back_populates="task",
+    )
 
 
 class Comment(Base):
@@ -30,6 +33,17 @@ class Comment(Base):
         back_populates="comments",
     )
 
+
+class TaskFile(Base):
+    __tablename__= "taskfiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    minetype: Mapped[str] = mapped_column(String(100))
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    task: Mapped["Task"] = relationship(
+        back_populates="file",
+    )
 
 #
 #
