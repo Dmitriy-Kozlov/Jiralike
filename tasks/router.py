@@ -17,12 +17,14 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.TaskRel])
-async def get_tasks(session: AsyncSession = Depends(get_async_session)):
+async def get_tasks(task_filter: str = None, session: AsyncSession = Depends(get_async_session)):
     query = (
         select(models.Task)
         .options(selectinload(models.Task.comments))
         .options(joinedload(models.Task.file))
     )
+    if task_filter:
+        query = query.filter(models.Task.headline.icontains(task_filter))
     result = await session.execute(query)
     tasks = result.scalars().all()
     return tasks
