@@ -74,7 +74,7 @@ async def get_comments_from_specified_task(task_id: int, session: AsyncSession =
     return comments
 
 
-@router.post("/upload", summary="Upload your Post picture")
+@router.post("/upload", summary="Upload your Task file")
 async def upload(task_id: int, session: AsyncSession = Depends(get_async_session), file: UploadFile = File(...)):
     with open(f"static/taskfiles/{file.filename}", "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
