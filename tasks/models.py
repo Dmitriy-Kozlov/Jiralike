@@ -40,7 +40,7 @@ class Comment(Base):
         back_populates="comments",
     )
     owner: Mapped["User"] = relationship(
-        back_populates="comments"
+        back_populates="comments", lazy='selectin'
     )
 
 

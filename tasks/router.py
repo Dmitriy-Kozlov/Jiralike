@@ -25,6 +25,25 @@ async def get_tasks(
         ):
     query = (
         select(Task)
+        .options(joinedload(Task.file))
+        .options(joinedload(Task.owner))
+        .options(selectinload(Task.comments))
+    )
+    if task_filter:
+        query = query.filter(Task.headline.icontains(task_filter))
+    result = await session.execute(query)
+    tasks = result.scalars().all()
+    return tasks
+
+
+@router.get("/my_tasks", response_model=List[TaskRel], )
+async def get_tasks(
+        task_filter: str = None,
+        session: AsyncSession = Depends(get_async_session),
+        user: User = Depends(current_active_user)
+        ):
+    query = (
+        select(Task).filter_by(owner=user)
         .options(selectinload(Task.comments))
         .options(joinedload(Task.file))
         .options(joinedload(Task.owner))

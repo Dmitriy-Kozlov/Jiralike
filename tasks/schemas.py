@@ -48,7 +48,7 @@ class CommentRel(CommentRead):
 
 
 class TaskRel(TaskRead):
-    comments: list["CommentRead"]
+    comments: list["CommentRel"]
     file: TaskFileRead | None
     owner: "UserRead"
 
