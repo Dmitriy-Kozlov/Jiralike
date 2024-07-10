@@ -9,7 +9,7 @@ class CommentAdd(BaseModel):
     task_id: int
 
 
-class Comment(CommentAdd):
+class CommentRead(CommentAdd):
     id: int
     created_at: datetime
 
@@ -19,7 +19,7 @@ class TaskAdd(BaseModel):
     description: str
 
 
-class Task(TaskAdd):
+class TaskRead(TaskAdd):
     id: int
     created_at: datetime
 
@@ -30,21 +30,27 @@ class TaskFileAdd(BaseModel):
     task_id: int
 
 
-class TaskFile(TaskFileAdd):
+class TaskFileRead(TaskFileAdd):
     id: int
 
 
-class TaskFileRel(TaskFile):
-    task: "Task"
+from auth.schemas import UserRead
 
 
-class CommentRel(Comment):
-    task: "Task"
+class TaskFileRel(TaskFileRead):
+    task: "TaskRead"
+    owner: "UserRead"
 
 
-class TaskRel(Task):
-    comments: list["Comment"]
-    file: TaskFile | None
+class CommentRel(CommentRead):
+    # task: "TaskRead"
+    owner: "UserRead"
+
+
+class TaskRel(TaskRead):
+    comments: list["CommentRead"]
+    file: TaskFileRead | None
+    owner: "UserRead"
 
 
 

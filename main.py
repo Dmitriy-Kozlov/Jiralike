@@ -3,7 +3,7 @@ from tasks.router import router as task_router
 from fastapi.staticfiles import StaticFiles
 from auth.user_manager import auth_backend, current_active_user, fastapi_users
 from auth.models import User
-from auth.schemas import UserCreate, UserRead
+from auth.schemas import UserCreate, UserRead, UserUpdate
 
 app = FastAPI(
     title="JIRAlike"
@@ -31,6 +31,11 @@ app.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/users",
     tags=["users"]
+)
+app.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/users",
+    tags=["users"],
 )
 
 

@@ -1,9 +1,11 @@
 import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
+from sqlalchemy.dialects.postgresql import ARRAY
 
 from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database import Base
+# from auth.models import User
 
 created_at = Annotated[datetime.datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
 
@@ -14,11 +16,15 @@ class Task(Base):
     headline: Mapped[str]
     description: Mapped[str]
     created_at: Mapped[created_at]
+    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     comments: Mapped[Optional[list["Comment"]]] = relationship(
         back_populates="task",
     )
     file: Mapped[Optional["TaskFile"]] = relationship(
         back_populates="task",
+    )
+    owner: Mapped["User"] = relationship(
+        back_populates="tasks"
     )
 
 
@@ -28,9 +34,13 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str]
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[created_at]
     task: Mapped["Task"] = relationship(
         back_populates="comments",
+    )
+    owner: Mapped["User"] = relationship(
+        back_populates="comments"
     )
 
 
@@ -41,8 +51,12 @@ class TaskFile(Base):
     name: Mapped[str] = mapped_column(String(200))
     minetype: Mapped[str] = mapped_column(String(100))
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     task: Mapped["Task"] = relationship(
         back_populates="file",
+    )
+    owner: Mapped["User"] = relationship(
+        back_populates="files"
     )
 
 #

@@ -22,3 +22,19 @@ class UserCreate(schemas.BaseUserCreate):
     is_active: Optional[bool] = True
     is_superuser: Optional[bool] = False
     is_verified: Optional[bool] = False
+
+
+class UserUpdate(schemas.BaseUserUpdate):
+    password: Optional[str] = None
+    email: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_superuser: Optional[bool] = None
+    is_verified: Optional[bool] = None
+
+from tasks.schemas import TaskRead, CommentRead, TaskFileRead
+
+
+class UserRel(UserRead):
+    comments: Optional["CommentRead"]
+    tasks: Optional["TaskRead"]
+    files: Optional["TaskFileRead"]
