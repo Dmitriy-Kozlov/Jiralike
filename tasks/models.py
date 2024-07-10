@@ -16,7 +16,7 @@ class Task(Base):
     headline: Mapped[str]
     description: Mapped[str]
     created_at: Mapped[created_at]
-    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     comments: Mapped[Optional[list["Comment"]]] = relationship(
         back_populates="task",
     )
@@ -34,7 +34,7 @@ class Comment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str]
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[created_at]
     task: Mapped["Task"] = relationship(
         back_populates="comments",
@@ -51,7 +51,7 @@ class TaskFile(Base):
     name: Mapped[str] = mapped_column(String(200))
     minetype: Mapped[str] = mapped_column(String(100))
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    owner_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     task: Mapped["Task"] = relationship(
         back_populates="file",
     )

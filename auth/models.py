@@ -11,6 +11,8 @@ from database import Base, get_async_session
 
 
 class User(SQLAlchemyBaseUserTable[int], Base):
+    __tablename__ = "users"
+
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(nullable=False)
     username: Mapped[str] = mapped_column(nullable=False)
