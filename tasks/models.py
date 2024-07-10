@@ -59,6 +59,14 @@ class TaskFile(Base):
         back_populates="files"
     )
 
+
+class EmailNotification(Base):
+    __tablename__ = "emailnotifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str]
+    task_id: Mapped[int]
+
 #
 #
 # class Task(Base):

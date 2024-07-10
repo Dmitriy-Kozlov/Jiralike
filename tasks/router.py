@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from auth.user_manager import current_active_user
 from database import get_async_session
-from .models import Task, Comment, TaskFile
+from .models import Task, Comment, TaskFile, EmailNotification
 from .schemas import TaskRel, TaskAdd, CommentAdd, CommentRead, CommentRel
 from auth.models import User
 
@@ -82,6 +82,9 @@ async def add_task(
     # stmt = insert(models.Task).values(**new_task.dict())
     # await session.execute(stmt)
     session.add(new_task_db)
+    await session.flush()
+    new_notification = EmailNotification(email=user.email, task_id=new_task_db.id)
+    session.add(new_notification)
     await session.commit()
     return {"status": "OK"}
 
@@ -92,6 +95,11 @@ async def add_comment(
         session: AsyncSession = Depends(get_async_session),
         user: User = Depends(current_active_user)):
     new_comment_db = Comment(**new_comment.dict(), owner=user)
+    query = select(EmailNotification).filter_by(task_id=new_comment_db.task_id)
+    result_emails = await session.execute(query)
+    if user.email not in (row.email for row in result_emails.scalars().all()):
+        new_notification = EmailNotification(email=user.email, task_id=new_comment_db.task_id)
+        session.add(new_notification)
     session.add(new_comment_db)
     # stmt = insert(models.Comment).values(**new_comment.dict())
     # await session.execute(stmt)
