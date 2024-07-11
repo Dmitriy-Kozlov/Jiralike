@@ -2,7 +2,7 @@ import shutil
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, delete
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
@@ -70,6 +70,23 @@ async def get_one_task(task_id: int, session: AsyncSession = Depends(get_async_s
         result = await session.execute(query)
         task = result.scalars().one()
         return task
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+
+@router.delete("/{task_id}")
+async def get_one_task(task_id: int,
+                       session: AsyncSession = Depends(get_async_session),
+                       user: User = Depends(current_active_user)):
+    if not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to delete task")
+    try:
+        # session.query(Task).filter(Task.id == task_id).delete()
+        # await session.commit()
+        query = delete(Task).where(Task.id == task_id)
+        await session.execute(query)
+        await session.commit()
+        return {"Message": "Task deleted"}
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Item not found")
 
