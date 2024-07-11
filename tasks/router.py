@@ -1,7 +1,7 @@
 import shutil
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from sqlalchemy import select, insert
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from database import get_async_session
 from .models import Task, Comment, TaskFile, EmailNotification
 from .schemas import TaskRel, TaskAdd, CommentAdd, CommentRead, CommentRel
 from auth.models import User
+from .send_email import send_email_notification
 
 router = APIRouter(
     prefix="/tasks",
@@ -76,31 +77,36 @@ async def get_one_task(task_id: int, session: AsyncSession = Depends(get_async_s
 @router.post("/")
 async def add_task(
         new_task: TaskAdd,
+        background_tasks: BackgroundTasks,
         session: AsyncSession = Depends(get_async_session),
-        user: User = Depends(current_active_user)):
+        user: User = Depends(current_active_user),
+        ):
     new_task_db = Task(**new_task.dict(), owner=user)
-    # stmt = insert(models.Task).values(**new_task.dict())
-    # await session.execute(stmt)
     session.add(new_task_db)
     await session.flush()
     new_notification = EmailNotification(email=user.email, task_id=new_task_db.id)
     session.add(new_notification)
     await session.commit()
+    background_tasks.add_task(send_email_notification, new_task_db.id, [user.email], session)
     return {"status": "OK"}
 
 
 @router.post("/{task_id}/comment")
 async def add_comment(
         new_comment: CommentAdd,
+        background_tasks: BackgroundTasks,
         session: AsyncSession = Depends(get_async_session),
         user: User = Depends(current_active_user)):
     new_comment_db = Comment(**new_comment.dict(), owner=user)
     query = select(EmailNotification).filter_by(task_id=new_comment_db.task_id)
     result_emails = await session.execute(query)
-    if user.email not in (row.email for row in result_emails.scalars().all()):
+    email_list = [row.email for row in result_emails.scalars().all()]
+    if user.email not in email_list:
         new_notification = EmailNotification(email=user.email, task_id=new_comment_db.task_id)
+        email_list.append(user.email)
         session.add(new_notification)
     session.add(new_comment_db)
+    background_tasks.add_task(send_email_notification, new_comment_db.task_id, email_list, session)
     # stmt = insert(models.Comment).values(**new_comment.dict())
     # await session.execute(stmt)
     await session.commit()
@@ -122,6 +128,7 @@ async def get_comments_from_specified_task(task_id: int, session: AsyncSession =
 @router.post("/upload", summary="Upload your Task file")
 async def upload(
         task_id: int,
+        background_tasks: BackgroundTasks,
         session: AsyncSession = Depends(get_async_session),
         file: UploadFile = File(...),
         user: User = Depends(current_active_user)):
@@ -132,6 +139,10 @@ async def upload(
     name = file.filename
 
     taskfile = TaskFile(name=name, minetype=mimetype, task_id=task_id, owner=user)
+    query = select(EmailNotification).filter_by(task_id=task_id)
+    result_emails = await session.execute(query)
+    email_list = [row.email for row in result_emails.scalars().all()]
     session.add(taskfile)
     await session.commit()
+    background_tasks.add_task(send_email_notification, task_id, email_list, session)
     return f"{name} has been Successfully Uploaded"
