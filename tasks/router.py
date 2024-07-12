@@ -59,7 +59,6 @@ async def get_tasks(
 @router.get("/{task_id}", response_model=TaskRel)
 async def get_one_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
     try:
-        # query = select(models.Task).filter(models.Task.id == task_id)
         query = (
             select(Task)
             .filter_by(id=task_id)
@@ -81,8 +80,6 @@ async def get_one_task(task_id: int,
     if not user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to delete task")
     try:
-        # session.query(Task).filter(Task.id == task_id).delete()
-        # await session.commit()
         query = delete(Task).where(Task.id == task_id)
         await session.execute(query)
         await session.commit()
@@ -114,32 +111,42 @@ async def add_comment(
         background_tasks: BackgroundTasks,
         session: AsyncSession = Depends(get_async_session),
         user: User = Depends(current_active_user)):
+    try:
+        query = (
+            select(Task)
+            .filter_by(id=new_comment.task_id)
+            .options(selectinload(Task.emails))
+        )
+        result = await session.execute(query)
+        task = result.scalars().one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Task not found")
+
     new_comment_db = Comment(**new_comment.dict(), owner=user)
-    query = select(EmailNotification).filter_by(task_id=new_comment_db.task_id)
-    result_emails = await session.execute(query)
-    email_list = [row.email for row in result_emails.scalars().all()]
+    email_list = [row.email for row in task.emails]
     if user.email not in email_list:
         new_notification = EmailNotification(email=user.email, task_id=new_comment_db.task_id)
         email_list.append(user.email)
         session.add(new_notification)
     session.add(new_comment_db)
     background_tasks.add_task(send_email_notification, new_comment_db.task_id, email_list, session)
-    # stmt = insert(models.Comment).values(**new_comment.dict())
-    # await session.execute(stmt)
     await session.commit()
     return {"status": "OK"}
 
 
 @router.get("/{task_id}/comments", response_model=List[CommentRel])
 async def get_comments_from_specified_task(task_id: int, session: AsyncSession = Depends(get_async_session)):
-    query = (
-        select(Comment)
-        .filter_by(task_id=task_id)
-        .options(joinedload(Comment.owner))
-    )
-    result = await session.execute(query)
-    comments = result.scalars().all()
-    return comments
+    try:
+        query = (
+            select(Task)
+            .filter_by(id=task_id)
+            .options(selectinload(Task.comments))
+        )
+        result = await session.execute(query)
+        task = result.scalars().one()
+        return task.comments
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Task not found")
 
 
 @router.post("/upload", summary="Upload your Task file")
@@ -149,6 +156,16 @@ async def upload(
         session: AsyncSession = Depends(get_async_session),
         file: UploadFile = File(...),
         user: User = Depends(current_active_user)):
+    try:
+        query = (
+            select(Task)
+            .filter_by(id=task_id)
+            .options(selectinload(Task.emails))
+        )
+        result = await session.execute(query)
+        task = result.scalars().one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Task not found")
     with open(f"static/taskfiles/{file.filename}", "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -156,9 +173,9 @@ async def upload(
     name = file.filename
 
     taskfile = TaskFile(name=name, minetype=mimetype, task_id=task_id, owner=user)
-    query = select(EmailNotification).filter_by(task_id=task_id)
-    result_emails = await session.execute(query)
-    email_list = [row.email for row in result_emails.scalars().all()]
+    email_list = [row.email for row in task.emails]
+    if user.email not in email_list:
+        email_list.append(user.email)
     session.add(taskfile)
     await session.commit()
     background_tasks.add_task(send_email_notification, task_id, email_list, session)

@@ -26,6 +26,9 @@ class Task(Base):
     owner: Mapped["User"] = relationship(
         back_populates="tasks"
     )
+    emails: Mapped[Optional[list["EmailNotification"]]] = relationship(
+        back_populates="task",
+    )
 
 
 class Comment(Base):
@@ -65,8 +68,10 @@ class EmailNotification(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str]
-    task_id: Mapped[int]
-
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    task: Mapped["Task"] = relationship(
+        back_populates="emails",
+    )
 #
 #
 # class Task(Base):

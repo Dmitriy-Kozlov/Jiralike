@@ -16,7 +16,7 @@ from tasks.models import Task
 SMTP_SERVER = "smtp.gmail.com"
 PORT = 465
 
-if DEBAG:
+if not DEBAG:
     async def send_email_notification(task_id: int, email_list: list[str], session: AsyncSession):
         query = (
             select(Task)
