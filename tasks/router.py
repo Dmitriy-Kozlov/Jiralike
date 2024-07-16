@@ -147,13 +147,14 @@ async def close_task(
         query = (
             select(Task)
             .filter_by(id=task_id)
-            .filter_by(owner_id=user.id)
             .options(selectinload(Task.emails))
         )
         result = await session.execute(query)
         task = result.scalars().one()
     except NoResultFound:
-        raise HTTPException(status_code=404, detail="Task not found or you cannot close this task")
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="You cannot close this task")
 
     email_list = [row.email for row in task.emails]
     task.status = TaskStatus.closed
