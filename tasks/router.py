@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from auth.user_manager import current_active_user
 from database import get_async_session
-from .models import Task, Comment, TaskFile, EmailNotification
+from .models import Task, Comment, TaskFile, EmailNotification, TaskStatus
 from .schemas import TaskRel, TaskAdd, CommentAdd, CommentRead, CommentRel
 from auth.models import User
 from .send_email import send_email_notification
@@ -22,6 +22,7 @@ router = APIRouter(
 @router.get("/", response_model=List[TaskRel])
 async def get_tasks(
         task_filter: str = None,
+        task_status: TaskStatus = None,
         session: AsyncSession = Depends(get_async_session),
         ):
     query = (
@@ -32,6 +33,8 @@ async def get_tasks(
     )
     if task_filter:
         query = query.filter(Task.headline.icontains(task_filter))
+    if task_status:
+        query = query.filter_by(status=task_status)
     result = await session.execute(query)
     tasks = result.scalars().all()
     return tasks
@@ -130,6 +133,32 @@ async def add_comment(
         session.add(new_notification)
     session.add(new_comment_db)
     background_tasks.add_task(send_email_notification, new_comment_db.task_id, email_list, session)
+    await session.commit()
+    return {"status": "OK"}
+
+
+@router.post("/{task_id}/close")
+async def close_task(
+        task_id: int,
+        background_tasks: BackgroundTasks,
+        session: AsyncSession = Depends(get_async_session),
+        user: User = Depends(current_active_user)):
+    try:
+        query = (
+            select(Task)
+            .filter_by(id=task_id)
+            .filter_by(owner_id=user.id)
+            .options(selectinload(Task.emails))
+        )
+        result = await session.execute(query)
+        task = result.scalars().one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Task not found or you cannot close this task")
+
+    email_list = [row.email for row in task.emails]
+    task.status = TaskStatus.closed
+    session.add(task)
+    background_tasks.add_task(send_email_notification, task_id, email_list, session)
     await session.commit()
     return {"status": "OK"}
 

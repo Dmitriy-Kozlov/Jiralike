@@ -1,4 +1,5 @@
 import datetime
+import enum
 from typing import Annotated, Optional, List
 from sqlalchemy.dialects.postgresql import ARRAY
 
@@ -9,12 +10,19 @@ from database import Base
 
 created_at = Annotated[datetime.datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
 
+
+class TaskStatus(enum.Enum):
+    open = "open"
+    closed = "closed"
+
+
 class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     headline: Mapped[str]
     description: Mapped[str]
+    status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.open)
     created_at: Mapped[created_at]
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     comments: Mapped[Optional[list["Comment"]]] = relationship(

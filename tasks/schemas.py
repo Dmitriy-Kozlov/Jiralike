@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List
-
+from .models import TaskStatus
 from pydantic import BaseModel
 
 
@@ -21,6 +21,7 @@ class TaskAdd(BaseModel):
 
 class TaskRead(TaskAdd):
     id: int
+    status: TaskStatus
     created_at: datetime
 
 
