@@ -1,12 +1,10 @@
 import datetime
 import enum
-from typing import Annotated, Optional, List
-from sqlalchemy.dialects.postgresql import ARRAY
+from typing import Annotated, Optional
 
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, text
+from sqlalchemy import String, ForeignKey, text
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database import Base
-# from auth.models import User
 
 created_at = Annotated[datetime.datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
 

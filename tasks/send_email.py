@@ -36,7 +36,6 @@ if not DEBAG:
 
         message = MIMEMultipart()
         message["From"] = EMAIL
-        # message["To"] = receiver_email
         message["Subject"] = subject
 
         message.attach(MIMEText(body, "plain"))
@@ -54,7 +53,6 @@ if not DEBAG:
                 f"attachment; filename= {filename}",
             )
             message.attach(part)
-        # text = message.as_string()
 
         context = ssl.create_default_context()
         with smtplib.SMTP_SSL(SMTP_SERVER, PORT, context=context) as server:
