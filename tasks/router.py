@@ -43,6 +43,7 @@ async def get_tasks(
 @router.get("/my_tasks", response_model=List[TaskRel], )
 async def get_tasks(
         task_filter: str = None,
+        task_status: TaskStatus = None,
         session: AsyncSession = Depends(get_async_session),
         user: User = Depends(current_active_user)
         ):
@@ -54,6 +55,8 @@ async def get_tasks(
     )
     if task_filter:
         query = query.filter(Task.headline.icontains(task_filter))
+    if task_status:
+        query = query.filter_by(status=task_status)
     result = await session.execute(query)
     tasks = result.scalars().all()
     return tasks
@@ -124,6 +127,8 @@ async def add_comment(
         task = result.scalars().one()
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Task not found")
+    if task.status == TaskStatus.closed:
+        raise HTTPException(status_code=403, detail="Task is closed")
 
     new_comment_db = Comment(**new_comment.dict(), owner=user)
     email_list = [row.email for row in task.emails]
