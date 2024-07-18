@@ -1,7 +1,7 @@
 import shutil
-from typing import List
-
+from typing import List, Generator
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy import select, insert, delete
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -215,3 +215,28 @@ async def upload(
     await session.commit()
     background_tasks.add_task(send_email_notification, task_id, email_list, session)
     return f"{name} has been Successfully Uploaded"
+
+
+@router.post("/download", summary="Download file for Task")
+async def download(
+        task_id: int,
+        background_tasks: BackgroundTasks,
+        session: AsyncSession = Depends(get_async_session),
+        user: User = Depends(current_active_user)):
+    try:
+        query = (
+            select(Task)
+            .filter_by(id=task_id)
+            .options(joinedload(Task.file))
+            .options(selectinload(Task.emails))
+        )
+        result = await session.execute(query)
+        task = result.scalars().one()
+    except NoResultFound:
+        raise HTTPException(status_code=404, detail="Task not found")
+    path = f"static/taskfiles/{task.file.name}"
+    email_list = [row.email for row in task.emails]
+    if user.email not in email_list:
+        email_list.append(user.email)
+    background_tasks.add_task(send_email_notification, task_id, email_list, session)
+    return FileResponse(path, media_type='application/octet-stream', filename=task.file.name)
