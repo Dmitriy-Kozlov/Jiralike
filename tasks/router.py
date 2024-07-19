@@ -1,11 +1,14 @@
 import shutil
 from typing import List, Generator
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import select, insert, delete
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
+# from starlette.requests import Request
+
 from auth.user_manager import current_active_user
 from database import get_async_session
 from .models import Task, Comment, TaskFile, EmailNotification, TaskStatus
@@ -21,6 +24,7 @@ router = APIRouter(
 
 @router.get("/", response_model=List[TaskRel])
 async def get_tasks(
+        request: Request,
         task_filter: str = None,
         task_status: TaskStatus = None,
         session: AsyncSession = Depends(get_async_session),
@@ -37,6 +41,10 @@ async def get_tasks(
         query = query.filter_by(status=task_status)
     result = await session.execute(query)
     tasks = result.scalars().all()
+    token = request.cookies.get('bonds')
+    from auth.user_manager import is_admin_token, get_jwt_strategy
+    print(f"{token=}")
+    print(is_admin_token(request, token, get_jwt_strategy().secret, get_jwt_strategy().token_audience, get_jwt_strategy().algorithm))
     return tasks
 
 

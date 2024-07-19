@@ -3,10 +3,11 @@ from tasks.router import router as task_router
 from fastapi.staticfiles import StaticFiles
 from auth.user_manager import auth_backend, fastapi_users
 from auth.schemas import UserCreate, UserRead
-
+from starlette.middleware.sessions import SessionMiddleware
 app = FastAPI(
     title="JIRAlike"
 )
+app.add_middleware(SessionMiddleware, secret_key="some-random-string")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(task_router)
