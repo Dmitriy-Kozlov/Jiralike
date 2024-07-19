@@ -1,6 +1,9 @@
 from fastapi import HTTPException
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
+from auth.models import User
+from tasks.models import Task, Comment, TaskFile, EmailNotification
+from sqladmin import ModelView
 
 
 class AdminAuth(AuthenticationBackend):
@@ -17,3 +20,19 @@ class AdminAuth(AuthenticationBackend):
 
 
 authentication_backend = AdminAuth(secret_key="supersecret")
+
+
+class UserAdmin(ModelView, model=User):
+    column_list = [User.id, User.username]
+
+
+class TaskAdmin(ModelView, model=Task):
+    column_list = [Task.id, Task.headline]
+
+
+class CommentAdmin(ModelView, model=Comment):
+    column_list = [Comment.id, Comment.text]
+
+
+class TaskFileAdmin(ModelView, model=TaskFile):
+    column_list = [TaskFile.id, TaskFile.name]

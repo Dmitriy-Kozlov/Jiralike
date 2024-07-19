@@ -22,7 +22,7 @@ class Task(Base):
     description: Mapped[str]
     status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.open)
     created_at: Mapped[created_at]
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    owner_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     comments: Mapped[Optional[list["Comment"]]] = relationship(
         back_populates="task",
     )
@@ -36,14 +36,17 @@ class Task(Base):
         back_populates="task",
     )
 
+    def __repr__(self):
+        return f"Task#{self.id}"
+
 
 class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str]
-    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    task_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    owner_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[created_at]
     task: Mapped["Task"] = relationship(
         back_populates="comments",
@@ -52,6 +55,8 @@ class Comment(Base):
         back_populates="comments", lazy='selectin'
     )
 
+    def __repr__(self):
+        return self.text
 
 class TaskFile(Base):
     __tablename__= "taskfiles"
@@ -59,8 +64,8 @@ class TaskFile(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     minetype: Mapped[str] = mapped_column(String(100))
-    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    task_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    owner_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     task: Mapped["Task"] = relationship(
         back_populates="file",
     )
@@ -68,32 +73,19 @@ class TaskFile(Base):
         back_populates="files"
     )
 
+    def __repr__(self):
+        return self.name
+
 
 class EmailNotification(Base):
     __tablename__ = "emailnotifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str]
-    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
+    task_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"))
     task: Mapped["Task"] = relationship(
         back_populates="emails",
     )
-#
-#
-# class Task(Base):
-#     __tablename__ = "tasks"
-#
-#     id = Column("id", Integer, primary_key=True)
-#     headline = Column("headline", String)
-#     description = Column("description", String)
-#     date = Column("date", TIMESTAMP)
-#     comments = relationship("Comment", back_populates="task", lazy="selectin")
-#
-#
-# class Comment(Base):
-#     __tablename__ = "comments"
-#
-#     id = Column("id", Integer, primary_key=True)
-#     text = Column("text", String)
-#     task_id = Column(Integer, ForeignKey("tasks.id"))
-#     task = relationship("Task", back_populates="comments", lazy="selectin")
+
+    def __repr__(self):
+        return self.email

@@ -5,7 +5,8 @@ from auth.user_manager import auth_backend, fastapi_users
 from auth.schemas import UserCreate, UserRead
 from starlette.middleware.sessions import SessionMiddleware
 from database import engine
-from auth.models import User
+from sqladmin import Admin
+from admin import authentication_backend, UserAdmin, TaskAdmin, CommentAdmin, TaskFileAdmin
 
 app = FastAPI(
     title="JIRAlike"
@@ -24,14 +25,10 @@ app.include_router(
     prefix="/users",
     tags=["users"]
 )
-from sqladmin import Admin, ModelView
-from admin import authentication_backend
 
 admin = Admin(app, engine, authentication_backend=authentication_backend)
 
-
-class UserAdmin(ModelView, model=User):
-    column_list = [User.id, User.username]
-
-
 admin.add_view(UserAdmin)
+admin.add_view(TaskAdmin)
+admin.add_view(CommentAdmin)
+admin.add_view(TaskFileAdmin)

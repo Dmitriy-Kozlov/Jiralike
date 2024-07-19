@@ -28,6 +28,9 @@ class User(SQLAlchemyBaseUserTable[int], Base):
     files: Mapped[Optional[list["TaskFile"]]] = relationship(
         back_populates="owner")
 
+    def __repr__(self):
+        return self.username
+
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, User)
