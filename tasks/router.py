@@ -41,10 +41,6 @@ async def get_tasks(
         query = query.filter_by(status=task_status)
     result = await session.execute(query)
     tasks = result.scalars().all()
-    token = request.cookies.get('bonds')
-    from auth.user_manager import is_admin_token, get_jwt_strategy
-    print(f"{token=}")
-    print(is_admin_token(request, token, get_jwt_strategy().secret, get_jwt_strategy().token_audience, get_jwt_strategy().algorithm))
     return tasks
 
 
